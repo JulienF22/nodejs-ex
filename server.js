@@ -105,7 +105,7 @@ app.post('/mail', async function(req, res) {
 
   // create reusable transporter object using the default SMTP transport
   let transporter = nodemailer.createTransport({
-    host: 'fed-apps.itn.ftgroup',
+    host: 'fed-appsq.itn.ftgroup',
     port: 25,
     secure: false // true for 465, false for other ports
   });
