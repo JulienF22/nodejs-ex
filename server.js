@@ -105,7 +105,7 @@ app.post('/mail', async function(req, res) {
 
   // create reusable transporter object using the default SMTP transport
   let transporter = nodemailer.createTransport({
-    host: 'smtp-relay',
+    host: 'fed-apps.itn.ftgroup',
     port: 25,
     secure: false // true for 465, false for other ports
   });
@@ -118,9 +118,12 @@ app.post('/mail', async function(req, res) {
       text: req.body.message, // plain text body
       html: '<b>' + req.body.message + '</b>' // html body
     })
-    .catch(err => res.status(500).send('mail  not sent'));
-  console.log(info);
-  res.status(200).send('Smail sent');
+    .catch(err => {
+      console.log(err);
+      res.status(500).send('mail  not sent' + err);
+    });
+
+  res.status(200).send('mail sent');
 });
 
 app.get('/pagecount', function(req, res) {
