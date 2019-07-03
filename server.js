@@ -1,17 +1,18 @@
 //  OpenShift sample Node application
+const nodemailer = require('nodemailer');
 var express = require('express'),
-    app     = express(),
-    morgan  = require('morgan');
-    
-Object.assign=require('object-assign')
+  app = express(),
+  morgan = require('morgan');
+
+Object.assign = require('object-assign');
 
 app.engine('html', require('ejs').renderFile);
-app.use(morgan('combined'))
-
+app.use(morgan('combined'));
+app.use(express.json());
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
-    ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
-    mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
-    mongoURLLabel = "";
+  ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
+  mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
+  mongoURLLabel = '';
 
 if (mongoURL == null) {
   var mongoHost, mongoPort, mongoDatabase, mongoPassword, mongoUser;
@@ -24,14 +25,14 @@ if (mongoURL == null) {
     mongoPassword = process.env[mongoServiceName + '_PASSWORD'];
     mongoUser = process.env[mongoServiceName + '_USER'];
 
-  // If using env vars from secret from service binding  
+    // If using env vars from secret from service binding
   } else if (process.env.database_name) {
     mongoDatabase = process.env.database_name;
     mongoPassword = process.env.password;
     mongoUser = process.env.username;
-    var mongoUriParts = process.env.uri && process.env.uri.split("//");
+    var mongoUriParts = process.env.uri && process.env.uri.split('//');
     if (mongoUriParts.length == 2) {
-      mongoUriParts = mongoUriParts[1].split(":");
+      mongoUriParts = mongoUriParts[1].split(':');
       if (mongoUriParts && mongoUriParts.length == 2) {
         mongoHost = mongoUriParts[0];
         mongoPort = mongoUriParts[1];
@@ -46,11 +47,11 @@ if (mongoURL == null) {
     }
     // Provide UI label that excludes user id and pw
     mongoURLLabel += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
-    mongoURL += mongoHost + ':' +  mongoPort + '/' + mongoDatabase;
+    mongoURL += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
   }
 }
 var db = null,
-    dbDetails = new Object();
+  dbDetails = new Object();
 
 var initDb = function(callback) {
   if (mongoURL == null) return;
@@ -73,35 +74,63 @@ var initDb = function(callback) {
   });
 };
 
-app.get('/', function (req, res) {
+app.get('/', function(req, res) {
   // try to initialize the db on every request if it's not already
   // initialized.
   if (!db) {
-    initDb(function(err){});
+    initDb(function(err) {});
   }
   if (db) {
     var col = db.collection('counts');
     // Create a document with request IP and current time of request
-    col.insert({ip: req.ip, date: Date.now()});
-    col.count(function(err, count){
+    col.insert({ ip: req.ip, date: Date.now() });
+    col.count(function(err, count) {
       if (err) {
-        console.log('Error running count. Message:\n'+err);
+        console.log('Error running count. Message:\n' + err);
       }
-      res.render('index.html', { pageCountMessage : count, dbInfo: dbDetails });
+      res.render('index.html', { pageCountMessage: count, dbInfo: dbDetails });
     });
   } else {
-    res.render('index.html', { pageCountMessage : null});
+    res.render('index.html', { pageCountMessage: null });
   }
 });
 
-app.get('/pagecount', function (req, res) {
+app.post('/mail', async function(req, res) {
   // try to initialize the db on every request if it's not already
   // initialized.
   if (!db) {
-    initDb(function(err){});
+    initDb(function(err) {});
+  }
+  console.log(req.body);
+
+  // create reusable transporter object using the default SMTP transport
+  let transporter = nodemailer.createTransport({
+    host: 'smtp-relay',
+    port: 25,
+    secure: false // true for 465, false for other ports
+  });
+
+  let info = await transporter
+    .sendMail({
+      from: '"Orange Money Retailer" <orangemoney.retailer@orange.com>', // sender address
+      to: req.body.mail, // list of receivers
+      subject: 'Invitatiopn to create account', // Subject line
+      text: req.body.message, // plain text body
+      html: '<b>' + req.body.message + '</b>' // html body
+    })
+    .catch(err => res.status(500).send('mail  not sent'));
+  console.log(info);
+  res.status(200).send('Smail sent');
+});
+
+app.get('/pagecount', function(req, res) {
+  // try to initialize the db on every request if it's not already
+  // initialized.
+  if (!db) {
+    initDb(function(err) {});
   }
   if (db) {
-    db.collection('counts').count(function(err, count ){
+    db.collection('counts').count(function(err, count) {
       res.send('{ pageCount: ' + count + '}');
     });
   } else {
@@ -110,16 +139,16 @@ app.get('/pagecount', function (req, res) {
 });
 
 // error handling
-app.use(function(err, req, res, next){
+app.use(function(err, req, res, next) {
   console.error(err.stack);
   res.status(500).send('Something bad happened!');
 });
 
-initDb(function(err){
-  console.log('Error connecting to Mongo. Message:\n'+err);
+initDb(function(err) {
+  console.log('Error connecting to Mongo. Message:\n' + err);
 });
 
 app.listen(port, ip);
 console.log('Server running on http://%s:%s', ip, port);
 
-module.exports = app ;
+module.exports = app;
