@@ -110,9 +110,9 @@ app.post('/mail', async function(req, res) {
     .sendMail({
       from: '"Orange Money Retailer" <orangemoney.retailer@orange.com>', // sender address
       to: req.body.mail, // list of receivers
-      subject: 'Invitatiopn to create account', // Subject line
+      subject: 'Invitation to create account', // Subject line
       text: req.body.message, // plain text body
-      html: '<b>' + req.body.message + '</b>' // html body
+      html: req.body.message // html body
     })
     .catch(err => {
       console.log(err);
