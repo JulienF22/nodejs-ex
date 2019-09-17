@@ -110,7 +110,7 @@ app.post('/mail', async function(req, res) {
     .sendMail({
       from: '"Orange Money Retailer" <orangemoney.retailer@orange.com>', // sender address
       to: req.body.mail, // list of receivers
-      subject: 'Invitation to create account', // Subject line
+      subject: req.body.subject, // Subject line
       text: req.body.message, // plain text body
       html: req.body.message // html body
     })
